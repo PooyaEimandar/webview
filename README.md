@@ -197,9 +197,9 @@ int WINAPI WinMain(HINSTANCE hInt, HINSTANCE hPrevInst, LPSTR lpCmdLine,
 #else
 int main() {
 #endif
-  /* Open wikipedia in a 800x600 resizable window */
+  /* Open wikipedia in a 800x600 resizable off screen window */
   webview("Minimal webview example",
-	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, 1);
+	  "https://en.m.wikipedia.org/wiki/Main_Page", 800, 600, 1, /*enable off screen*/1);
   return 0;
 }
 ```
