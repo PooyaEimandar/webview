@@ -100,6 +100,7 @@ struct webview {
   int width;
   int height;
   int resizable;
+  int offscreen;
   int debug;
   webview_external_invoke_cb_t external_invoke_cb;
   struct webview_priv priv;
@@ -151,7 +152,7 @@ static const char *webview_check_url(const char *url) {
 }
 
 WEBVIEW_API int webview(const char *title, const char *url, int width,
-                        int height, int resizable);
+                        int height, int resizable, int offscreen);
 
 WEBVIEW_API int webview_init(struct webview *w);
 WEBVIEW_API int webview_loop(struct webview *w, int blocking);
@@ -171,12 +172,13 @@ WEBVIEW_API void webview_terminate(struct webview *w);
 WEBVIEW_API void webview_exit(struct webview *w);
 WEBVIEW_API void webview_debug(const char *format, ...);
 WEBVIEW_API void webview_print_log(const char *s);
+WEBVIEW_API void webview_screenshot(struct webview *w);
 
 #ifdef WEBVIEW_IMPLEMENTATION
 #undef WEBVIEW_IMPLEMENTATION
 
 WEBVIEW_API int webview(const char *title, const char *url, int width,
-                        int height, int resizable) {
+                        int height, int resizable, int offscreen) {
   struct webview webview;
   memset(&webview, 0, sizeof(webview));
   webview.title = title;
@@ -184,6 +186,7 @@ WEBVIEW_API int webview(const char *title, const char *url, int width,
   webview.width = width;
   webview.height = height;
   webview.resizable = resizable;
+  webview.offscreen = offscreen;
   int r = webview_init(&webview);
   if (r != 0) {
     return r;
@@ -297,7 +300,7 @@ WEBVIEW_API int webview_init(struct webview *w) {
   w->priv.ready = 0;
   w->priv.should_exit = 0;
   w->priv.queue = g_async_queue_new();
-  w->priv.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  w->priv.window = w->offscreen ? gtk_offscreen_window_new() : gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_window_set_title(GTK_WINDOW(w->priv.window), w->title);
 
   if (w->resizable) {
@@ -348,6 +351,7 @@ WEBVIEW_API int webview_init(struct webview *w) {
 }
 
 WEBVIEW_API int webview_loop(struct webview *w, int blocking) {
+  webview_screenshot(w);
   gtk_main_iteration_do(blocking);
   return w->priv.should_exit;
 }
@@ -482,6 +486,21 @@ WEBVIEW_API void webview_terminate(struct webview *w) {
 WEBVIEW_API void webview_exit(struct webview *w) { (void)w; }
 WEBVIEW_API void webview_print_log(const char *s) {
   fprintf(stderr, "%s\n", s);
+}
+
+WEBVIEW_API void webview_screenshot(struct webview *w) 
+{
+    GdkWindow* window;
+    GdkPixbuf* buffer;
+    gint x, y, width, height;
+
+    window = gtk_widget_get_window(GTK_WIDGET(w->priv.webview));
+    gdk_window_get_geometry (window, &x, &y, &width, &height);
+    buffer = gdk_pixbuf_get_from_window (window, x, y, width, height);
+    
+    //test
+    printf("w=%d h=%d \r\n", width, height);
+    gdk_pixbuf_savev(buffer, "/home/playpod/1.jpg", "jpeg", NULL, NULL, NULL);
 }
 
 #endif /* WEBVIEW_GTK */
